@@ -259,11 +259,11 @@ impl MmapOptions {
     pub unsafe fn map_mut(&self, file: &File) -> Result<MmapMut> {
         if self.populate && cfg!(unix) {
             MmapInner::map_mut_populate(self.get_len(file)?, file, self.offset)
-                .map(|inner| MmapMut { inner: inner })
+                .map(|inner| MmapMut { inner })
         }
         else {
             MmapInner::map_mut(self.get_len(file)?, file, self.offset)
-                .map(|inner| MmapMut { inner: inner })
+                .map(|inner| MmapMut { inner })
         }
     }
 
@@ -294,11 +294,11 @@ impl MmapOptions {
     pub unsafe fn map_copy(&self, file: &File) -> Result<MmapMut> {
         if self.populate && cfg!(unix) {
             MmapInner::map_copy_populate(self.get_len(file)?, file, self.offset)
-                .map(|inner| MmapMut { inner: inner })
+                .map(|inner| MmapMut { inner })
         }
         else {
             MmapInner::map_copy(self.get_len(file)?, file, self.offset)
-                .map(|inner| MmapMut { inner: inner })
+                .map(|inner| MmapMut { inner })
         }
     }
 
@@ -312,10 +312,10 @@ impl MmapOptions {
     /// This method returns an error when the underlying system call fails.
     pub fn map_anon(&self) -> Result<MmapMut> {
         if self.populate && cfg!(unix) {
-            MmapInner::map_anon_populate(self.len.unwrap_or(0), self.stack).map(|inner| MmapMut { inner: inner })
+            MmapInner::map_anon_populate(self.len.unwrap_or(0), self.stack).map(|inner| MmapMut { inner })
         }
         else {
-            MmapInner::map_anon(self.len.unwrap_or(0), self.stack).map(|inner| MmapMut { inner: inner })
+            MmapInner::map_anon(self.len.unwrap_or(0), self.stack).map(|inner| MmapMut { inner })
         }
     }
 }
