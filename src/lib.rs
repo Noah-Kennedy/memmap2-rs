@@ -43,6 +43,7 @@ pub struct MmapOptions {
     offset: u64,
     len: Option<usize>,
     stack: bool,
+    populate: bool,
 }
 
 impl MmapOptions {
@@ -127,6 +128,11 @@ impl MmapOptions {
         self
     }
 
+    pub fn populate(&mut self, populate: bool) -> &mut Self {
+        self.populate = populate;
+        self
+    }
+
     /// Returns the configured length, or the length of the provided file.
     fn get_len(&self, file: &File) -> Result<usize> {
         self.len.map(Ok).unwrap_or_else(|| {
@@ -191,7 +197,14 @@ impl MmapOptions {
     /// # }
     /// ```
     pub unsafe fn map(&self, file: &File) -> Result<Mmap> {
-        MmapInner::map(self.get_len(file)?, file, self.offset).map(|inner| Mmap { inner: inner })
+        if self.populate && cfg!(unix) {
+            MmapInner::map_populate(self.get_len(file)?, file, self.offset)
+                .map(|inner| Mmap { inner })
+        }
+        else {
+            MmapInner::map(self.get_len(file)?, file, self.offset)
+                .map(|inner| Mmap { inner })
+        }
     }
 
     /// Creates a readable and executable memory map backed by a file.
@@ -201,8 +214,13 @@ impl MmapOptions {
     /// This method returns an error when the underlying system call fails, which can happen for a
     /// variety of reasons, such as when the file is not open with read permissions.
     pub unsafe fn map_exec(&self, file: &File) -> Result<Mmap> {
-        MmapInner::map_exec(self.get_len(file)?, file, self.offset)
-            .map(|inner| Mmap { inner: inner })
+        if self.populate && cfg!(unix) {
+            MmapInner::map_exec_populate(self.get_len(file)?, file, self.offset)
+                .map(|inner| Mmap { inner })
+        } else {
+            MmapInner::map_exec(self.get_len(file)?, file, self.offset)
+                .map(|inner| Mmap { inner })
+        }
     }
 
     /// Creates a writeable memory map backed by a file.
@@ -239,8 +257,14 @@ impl MmapOptions {
     /// # }
     /// ```
     pub unsafe fn map_mut(&self, file: &File) -> Result<MmapMut> {
-        MmapInner::map_mut(self.get_len(file)?, file, self.offset)
-            .map(|inner| MmapMut { inner: inner })
+        if self.populate && cfg!(unix) {
+            MmapInner::map_mut_populate(self.get_len(file)?, file, self.offset)
+                .map(|inner| MmapMut { inner: inner })
+        }
+        else {
+            MmapInner::map_mut(self.get_len(file)?, file, self.offset)
+                .map(|inner| MmapMut { inner: inner })
+        }
     }
 
     /// Creates a copy-on-write memory map backed by a file.
@@ -268,8 +292,14 @@ impl MmapOptions {
     /// # }
     /// ```
     pub unsafe fn map_copy(&self, file: &File) -> Result<MmapMut> {
-        MmapInner::map_copy(self.get_len(file)?, file, self.offset)
-            .map(|inner| MmapMut { inner: inner })
+        if self.populate && cfg!(unix) {
+            MmapInner::map_copy_populate(self.get_len(file)?, file, self.offset)
+                .map(|inner| MmapMut { inner: inner })
+        }
+        else {
+            MmapInner::map_copy(self.get_len(file)?, file, self.offset)
+                .map(|inner| MmapMut { inner: inner })
+        }
     }
 
     /// Creates an anonymous memory map.
@@ -281,7 +311,12 @@ impl MmapOptions {
     ///
     /// This method returns an error when the underlying system call fails.
     pub fn map_anon(&self) -> Result<MmapMut> {
-        MmapInner::map_anon(self.len.unwrap_or(0), self.stack).map(|inner| MmapMut { inner: inner })
+        if self.populate && cfg!(unix) {
+            MmapInner::map_anon_populate(self.len.unwrap_or(0), self.stack).map(|inner| MmapMut { inner: inner })
+        }
+        else {
+            MmapInner::map_anon(self.len.unwrap_or(0), self.stack).map(|inner| MmapMut { inner: inner })
+        }
     }
 }
 

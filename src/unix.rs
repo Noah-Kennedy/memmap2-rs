@@ -1,20 +1,20 @@
 extern crate libc;
 
+use std::{io, ptr};
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::{io, ptr};
 
 #[cfg(any(
-    all(target_os = "linux", not(target_arch = "mips")),
-    target_os = "freebsd",
-    target_os = "android"
+all(target_os = "linux", not(target_arch = "mips")),
+target_os = "freebsd",
+target_os = "android"
 ))]
 const MAP_STACK: libc::c_int = libc::MAP_STACK;
 
 #[cfg(not(any(
-    all(target_os = "linux", not(target_arch = "mips")),
-    target_os = "freebsd",
-    target_os = "android"
+all(target_os = "linux", not(target_arch = "mips")),
+target_os = "freebsd",
+target_os = "android"
 )))]
 const MAP_STACK: libc::c_int = 0;
 
@@ -27,7 +27,7 @@ impl MmapInner {
     /// Creates a new `MmapInner`.
     ///
     /// This is a thin wrapper around the `mmap` sytem call.
-    fn new(
+    pub fn new(
         len: usize,
         prot: libc::c_int,
         flags: libc::c_int,
@@ -60,7 +60,7 @@ impl MmapInner {
             } else {
                 Ok(MmapInner {
                     ptr: ptr.offset(alignment as isize),
-                    len: len,
+                    len,
                 })
             }
         }
@@ -76,11 +76,31 @@ impl MmapInner {
         )
     }
 
+    pub(crate) fn map_populate(len: usize, file: &File, offset: u64) -> io::Result<MmapInner> {
+        MmapInner::new(
+            len,
+            libc::PROT_READ | libc::PROT_EXEC,
+            libc::MAP_SHARED | libc::MAP_POPULATE,
+            file.as_raw_fd(),
+            offset,
+        )
+    }
+
     pub fn map_exec(len: usize, file: &File, offset: u64) -> io::Result<MmapInner> {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_EXEC,
             libc::MAP_SHARED,
+            file.as_raw_fd(),
+            offset,
+        )
+    }
+
+    pub(crate) fn map_exec_populate(len: usize, file: &File, offset: u64) -> io::Result<MmapInner> {
+        MmapInner::new(
+            len,
+            libc::PROT_READ | libc::PROT_EXEC,
+            libc::MAP_SHARED | libc::MAP_POPULATE,
             file.as_raw_fd(),
             offset,
         )
@@ -96,11 +116,31 @@ impl MmapInner {
         )
     }
 
+    pub(crate) fn map_mut_populate(len: usize, file: &File, offset: u64) -> io::Result<MmapInner> {
+        MmapInner::new(
+            len,
+            libc::PROT_READ | libc::PROT_WRITE,
+            libc::MAP_SHARED | libc::MAP_POPULATE,
+            file.as_raw_fd(),
+            offset,
+        )
+    }
+
     pub fn map_copy(len: usize, file: &File, offset: u64) -> io::Result<MmapInner> {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_WRITE,
             libc::MAP_PRIVATE,
+            file.as_raw_fd(),
+            offset,
+        )
+    }
+
+    pub(crate) fn map_copy_populate(len: usize, file: &File, offset: u64) -> io::Result<MmapInner> {
+        MmapInner::new(
+            len,
+            libc::PROT_READ | libc::PROT_WRITE,
+            libc::MAP_PRIVATE | libc::MAP_POPULATE,
             file.as_raw_fd(),
             offset,
         )
@@ -113,6 +153,18 @@ impl MmapInner {
             len,
             libc::PROT_READ | libc::PROT_WRITE,
             libc::MAP_SHARED | libc::MAP_ANON | stack,
+            -1,
+            0,
+        )
+    }
+
+    /// Open an anonymous memory map.
+    pub(crate) fn map_anon_populate(len: usize, stack: bool) -> io::Result<MmapInner> {
+        let stack = if stack { MAP_STACK } else { 0 };
+        MmapInner::new(
+            len,
+            libc::PROT_READ | libc::PROT_WRITE,
+            libc::MAP_SHARED | libc::MAP_ANON | stack | libc::MAP_POPULATE,
             -1,
             0,
         )
@@ -197,7 +249,7 @@ impl Drop for MmapInner {
             assert!(
                 libc::munmap(
                     self.ptr.offset(-(alignment as isize)),
-                    (self.len + alignment) as libc::size_t
+                    (self.len + alignment) as libc::size_t,
                 ) == 0,
                 "unable to unmap mmap: {}",
                 io::Error::last_os_error()
@@ -207,6 +259,7 @@ impl Drop for MmapInner {
 }
 
 unsafe impl Sync for MmapInner {}
+
 unsafe impl Send for MmapInner {}
 
 fn page_size() -> usize {
