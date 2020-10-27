@@ -80,7 +80,7 @@ impl MmapInner {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_EXEC,
-            libc::MAP_SHARED | libc::MAP_POPULATE,
+            libc::MAP_SHARED | libc::MAP_POPULATE | libc::MAP_HUGETLB | libc::MAP_HUGE_16GB,
             file.as_raw_fd(),
             offset,
         )
@@ -100,7 +100,7 @@ impl MmapInner {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_EXEC,
-            libc::MAP_SHARED | libc::MAP_POPULATE,
+            libc::MAP_SHARED | libc::MAP_POPULATE | libc::MAP_HUGETLB | libc::MAP_HUGE_16GB,
             file.as_raw_fd(),
             offset,
         )
@@ -120,7 +120,7 @@ impl MmapInner {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_SHARED | libc::MAP_POPULATE,
+            libc::MAP_SHARED | libc::MAP_POPULATE | libc::MAP_HUGETLB | libc::MAP_HUGE_16GB,
             file.as_raw_fd(),
             offset,
         )
@@ -140,7 +140,7 @@ impl MmapInner {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_PRIVATE | libc::MAP_POPULATE,
+            libc::MAP_PRIVATE | libc::MAP_POPULATE | libc::MAP_HUGETLB | libc::MAP_HUGE_16GB,
             file.as_raw_fd(),
             offset,
         )
@@ -164,7 +164,7 @@ impl MmapInner {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_SHARED | libc::MAP_ANON | stack | libc::MAP_POPULATE,
+            libc::MAP_SHARED | libc::MAP_ANON | stack | libc::MAP_POPULATE | libc::MAP_HUGETLB | libc::MAP_HUGE_16GB,
             -1,
             0,
         )
