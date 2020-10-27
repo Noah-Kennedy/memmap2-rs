@@ -164,7 +164,7 @@ impl MmapInner {
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_SHARED | libc::MAP_ANON | stack | libc::MAP_POPULATE | libc::MAP_HUGETLB | libc::MAP_HUGE_16GB,
+            libc::MAP_SHARED | libc::MAP_ANON | stack | libc::MAP_POPULATE | libc::MAP_HUGETLB | libc::MAP_HUGE_1GB,
             -1,
             0,
         )
